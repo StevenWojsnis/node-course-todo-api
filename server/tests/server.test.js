@@ -145,3 +145,81 @@ describe("DELETE /todos/:id route", () => {
       .end(done)
   });
 });
+
+describe('PATCH /todos/:id', () => {
+  it('should update a todo', (done) => {
+    var hexId = todos[1]._id.toHexString();
+    updateString = 'Update text from mocha test'
+    updateCompleted = true;
+
+    request(app)
+      .patch(`/todos/${hexId}`)
+      .send({
+        text: updateString,
+        completed: updateCompleted
+      })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.todo.text).toBe(updateString);
+        expect(res.body.todo.completed).toBe(updateCompleted);
+        expect(res.body.todo.completedAt).toBeA('number');
+      }).end((err, res) => {
+        if(err){
+          return done(err);
+        }
+
+        Todo.findById(hexId).then((todo) => {
+          expect(todo.text).toBe(updateString);
+          expect(todo.completed).toBe(updateCompleted);
+          done();
+        }).catch(err => done(err));
+      });
+
+  });
+
+  it('should set completedAt to null, and completed to false', (done) => {
+    var hexId = todos[1]._id.toHexString();
+
+    updateString = 'Checking if completedAt is null'
+    updateCompleted = false;
+
+    request(app)
+      .patch(`/todos/${hexId}`)
+      .send({
+        text: updateString,
+        completed: updateCompleted
+      })
+      .expect(200)
+      .expect((res) => {
+        expect(res.body.todo.text).toBe(updateString);
+        expect(res.body.todo.completed).toBe(updateCompleted);
+        expect(res.body.todo.completedAt).toNotExist();
+      })
+      .end((err, res) => {
+        if(err){
+          return done(err);
+        }
+
+        Todo.findById(hexId).then((todo) => {
+          expect(todo.text).toBe(updateString);
+          expect(todo.completed).toBe(updateCompleted);
+          expect(todo.completedAt).toNotExist();
+          done();
+        }).catch(err => done(err));
+      })
+  });
+
+  it('should return 404 if todo not found', (done) => {
+    request(app)
+      .patch('/todos/59764bf7ea5c844c3020a671')
+      .expect(404)
+      .end(done);
+  });
+
+  it('should return 404 if objectID is invalid', (done) => {
+    request(app)
+      .patch('/todos/123')
+      .expect(404)
+      .end(done)
+  });
+});
